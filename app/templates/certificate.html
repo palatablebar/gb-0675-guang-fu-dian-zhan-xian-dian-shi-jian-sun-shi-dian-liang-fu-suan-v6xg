@@ -1,0 +1,25 @@
+{% extends 'base.html' %}{% block content %}
+<section class="panel cert-head"><div class="panel__head"><h2>基线适用性证书</h2><span>{{ certificate.scope_id }}</span></div>
+<div class="cert-grid">
+<div class="cert-block"><small>证书状态</small><b class="cert-state {% if certificate.active and certificate.effective %}cert-ok{% elif certificate.active %}cert-stale{% endif %}">{% if certificate.active and certificate.effective %}有效{% elif certificate.active %}已失效待重判{% else %}未签发{% endif %}</b>
+{% if certificate.active %}<dl><dt>证书号</dt><dd>{{ certificate.active.certificate_id }}</dd><dt>版本</dt><dd>v{{ certificate.active.version }}</dd><dt>签发模式</dt><dd>{% if certificate.active.mode=='formal' %}正式{% else %}限定{% endif %}</dd><dt>签发时间</dt><dd>{{ certificate.active.issued_at }}</dd><dt>证据闭合</dt><dd>{% if certificate.active.closed %}是{% else %}否（仅覆盖可用区间）{% endif %}</dd></dl>{% if certificate.stale_reason %}<p class="cert-warn">失效原因：{{ certificate.stale_reason }}</p>{% endif %}{% endif %}</div>
+<div class="cert-block"><small>当前证据</small><dl><dt>指纹</dt><dd class="mono">{{ certificate.fingerprint[:24] }}…</dd><dt>采信</dt><dd class="mono">{{ state.certificate_draft.evidence.admission_hash[:16] }}…</dd><dt>设备映射</dt><dd class="mono">{{ state.certificate_draft.evidence.mapping_hash[:16] }}…</dd><dt>规则版本</dt><dd>{{ state.manifest.rule_version }}</dd></dl></div>
+<div class="cert-block"><small>覆盖结论</small><dl><dt>目标设备</dt><dd>{{ state.certificate_draft.totals.targets }}</dd><dt>可用</dt><dd>{{ state.certificate_draft.totals.usable_seconds }} s</dd><dt>受阻</dt><dd>{{ state.certificate_draft.totals.blocked_seconds }} s</dd><dt>覆盖率</dt><dd>{{ '%.1f'|format(state.certificate_draft.totals.coverage*100) }}%</dd></dl><p class="cert-note">只签显式可用区间，不跨受阻区间补齐。</p></div>
+</div>
+{% if state.certificate_draft.blockers %}<div class="cert-blockers"><b>证据未闭合，不得正式归档：</b><ul>{% for item in state.certificate_draft.blockers %}<li>{{ item }}</li>{% endfor %}</ul><p class="cert-note">可先做限定签发，只覆盖上述可用区间；受阻区间不并入、不补齐，等证据齐备后再签正式版。</p></div>{% endif %}
+<form class="cert-issue" id="cert-issue"><label>签发模式<select id="cert-mode"><option value="bounded">限定签发（只覆盖可用区间）</option><option value="formal" {% if not state.certificate_draft.closed %}disabled{% endif %}>正式签发（要求证据闭合）</option></select></label><label>备注<input id="cert-note" maxlength="200" placeholder="审计说明（可选）"></label><button id="cert-submit" type="button">签发证书</button></form>
+</section>
+
+<section class="panel main-panel"><div class="panel__head"><h2>每台设备区间</h2><span>{{ view.rows|length }} 段</span></div>
+<div class="device-cards">{% for device in state.certificate_draft.devices %}<div class="device-card"><div class="device-card__head"><b>{{ device.device }}</b><span>{{ device.zone }} · 额定 {{ device.capacity_kw }} kW</span><span class="coverage">可用 {{ device.usable_seconds }} s / 受阻 {{ device.blocked_seconds }} s / 并集 {{ device.union_seconds }} s</span></div>
+<div class="bin-strip">{% for bin in device.bins %}<span class="bin {% if bin.blocked_seconds and not bin.usable_seconds %}bin-blocked{% elif bin.blocked_seconds %}bin-mixed{% else %}bin-usable{% endif %}" title="{{ bin.irradiance_bin }}">{{ bin.irradiance_bin }} · 可用 {{ bin.usable_seconds }}s / 受阻 {{ bin.blocked_seconds }}s</span>{% endfor %}</div>
+<table class="mini"><thead><tr><th>区间 UTC</th><th>时长 s</th><th>辐照档</th><th>结论</th><th>基线 kW</th><th>对照依据</th><th>原因</th></tr></thead><tbody>
+{% for row in device.usable %}<tr><td>{{ row.start }} → {{ row.end }}</td><td>{{ row.seconds }}</td><td>{{ row.irradiance_bin }}</td><td class="ok">可用</td><td>{{ row.baseline_kw }}</td><td title="{{ row.reference_ids|join(',') }}">{{ row.reference_ids|join('、') }}</td><td>—</td></tr>{% endfor %}
+{% for row in device.blocked %}<tr class="blocked"><td>{{ row.start }} → {{ row.end }}</td><td>{{ row.seconds }}</td><td>{{ row.irradiance_bin }}</td><td class="bad">受阻</td><td>未定</td><td title="{{ row.available_refs|join(',') }}">{{ row.available_refs|join('、') or '无' }}</td><td>{{ row.reason }}{% if row.code=='NO_REFERENCE' %}（需 {{ row.required_refs }} 台，实得 {{ row.available_refs|length }} 台）{% endif %}</td></tr>{% endfor %}
+</tbody></table>{% if device.uncovered_seconds %}<p class="cert-warn">另有 {{ device.uncovered_seconds }} s 限电区间未被切片覆盖，计入受阻。</p>{% endif %}</div>{% endfor %}</div>
+</section>
+
+<section class="panel main-panel"><div class="panel__head"><h2>证书版本历史</h2><span>{{ certificate.history|length }} 版</span></div>
+<div class="table-scroll"><table><thead><tr><th>证书号</th><th>版本</th><th>状态</th><th>模式</th><th>证据闭合</th><th>签发时间</th><th>失效时间</th><th>原因</th></tr></thead><tbody>{% for item in certificate.history %}<tr><td>{{ item.certificate_id }}</td><td>v{{ item.version }}</td><td>{{ item.state }}</td><td>{% if item.mode=='formal' %}正式{% else %}限定{% endif %}</td><td>{{ '是' if item.closed else '否' }}</td><td>{{ item.issued_at }}</td><td>{{ item.invalidated_at or '—' }}</td><td title="{{ item.reason }}">{{ item.reason or '—' }}</td></tr>{% else %}<tr><td colspan="8">尚未签发。</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

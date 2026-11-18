@@ -12,7 +12,8 @@
 | M4 基线拟合 | 执行并复核基线拟合 | `POST /api/baseline` | `app/modules/baseline/rules.py` | `tests/test_baseline.py` |
 | M5 损失核算 | 执行并复核损失核算 | `POST /api/loss` | `app/modules/loss/rules.py` | `tests/test_loss.py` |
 | M6 能量对账 | 执行并复核能量对账 | `POST /api/reconcile` | `app/modules/reconcile/rules.py` | `tests/test_reconcile.py` |
-| M7 运行归档 | 执行并复核运行归档 | `POST /api/archive` | `app/modules/archive/rules.py` | `tests/test_archive.py` |
+| M7 基线证书 | 签发/失效/追证基线适用性 | `POST /api/certificate/issue` | `app/certificate.py`、`app/modules/certificate/rules.py` | `tests/test_certificate.py`、`tests/test_certificate_store.py` |
+| M8 运行归档 | 执行并复核运行归档 | `POST /api/archive` | `app/modules/archive/rules.py` | `tests/test_archive.py` |
 
 ## 陷阱登记
 
@@ -29,6 +30,10 @@
 | TRAP-06 | 全角千分位 | 静默错算或证据丢失 | 以可复核规则显式处理 | `app/modules/devices/rules.py` | `tests/test_devices.py::test_fullwidth_number` |
 | TRAP-11 | UTC归一 | 静默错算或证据丢失 | 以可复核规则显式处理 | `app/modules/devices/rules.py` | `tests/test_devices.py::test_time_equivalence` |
 | TRAP-23 | 限电区间并集 | 静默错算或证据丢失 | 以可复核规则显式处理 | `app/modules/slicing/rules.py` | `tests/test_slicing.py::test_overlapping_real` |
+| TRAP-31 | 受阻区间被相邻区间补齐 | 损失失真、审计不可追 | 只签显式可用片段，受阻逐条列出并排除 | `app/certificate.py` | `tests/test_certificate.py::test_dirty_blocks_are_explicit_and_excluded` |
+| TRAP-32 | 上游采信变化后旧证书仍被使用 | 用过期对照基线出证 | 证据指纹变化即失效，须重判 | `app/store.py` | `tests/test_certificate_store.py::test_upstream_admission_change_invalidates_then_reissues` |
+| TRAP-33 | 同批重跑覆盖已确认内容 | 已签发证书/归档被改写 | 同证据幂等复用，不递增版本、不覆盖 | `app/store.py` | `tests/test_certificate_store.py::test_rerun_same_evidence_reuses_confirmed_content` |
+| TRAP-34 | 签发半途失败留下残缺版本 | 旧证书丢失或出现半版 | 单事务写入，失败整体回滚 | `app/store.py` | `tests/test_certificate_store.py::test_failed_issue_rolls_back_previous_version` |
 
 ## 对账规则
 

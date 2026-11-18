@@ -10,6 +10,7 @@
     "基线拟合",
     "损失核算",
     "能量对账",
+    "基线证书",
     "运行归档"
   ],
   "rule": "仅用有效对照逆变器和相同辐照区间拟合基线；重叠限电事件先求并集再积分",
@@ -29,6 +30,7 @@
     "baseline",
     "loss",
     "reconcile",
+    "certificate",
     "archive"
   ],
   "labels": {
@@ -67,6 +69,19 @@
     "unknown_seconds": "未定 s",
     "line": "原始行",
     "_line": "原始行",
-    "detail": "原因"
+    "detail": "原因",
+    "irradiance_bin": "辐照档",
+    "blocked": "受阻",
+    "usable": "可用",
+    "coverage": "覆盖率",
+    "reason": "受阻原因",
+    "fingerprint": "证据指纹",
+    "certificate_id": "证书号",
+    "version": "版本",
+    "mode": "签发模式",
+    "scope_id": "作用域",
+    "issued_at": "签发时间",
+    "blockers": "未闭合项",
+    "closed": "证据闭合"
   }
 }
